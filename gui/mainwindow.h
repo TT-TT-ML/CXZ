@@ -63,6 +63,7 @@ private:
     QStringList compressArgs(const QString &in, const QString &out) const;
     QString passForRun(QString *out) const;
     QString cipherNameFromCombo() const;
+    int kdfIterations() const;
     void updateCommandPreviews();
     void setBusy(bool busy);
     void setStatus(const QString &s);

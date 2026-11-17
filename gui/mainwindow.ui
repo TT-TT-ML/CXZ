@@ -18,7 +18,7 @@
     <item>
      <widget class="QLabel" name="labelInfo">
       <property name="text">
-       <string>把 .cxz / .zip 拖进来，或点「打开」——这里会显示归档信息与文件清单。</string>
+       <string>把 .cxz 拖进来，或点「打开」——这里会显示归档信息与文件清单。</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -176,6 +176,19 @@
       </item>
       <item>
        <widget class="QComboBox" name="comboBoxCipher"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelKdf">
+        <property name="toolTip">
+         <string>KDF 轮数：越高越难被暴力破解，也越慢（10000 - 500000）</string>
+        </property>
+        <property name="text">
+         <string>KDF 轮数</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBoxKdf"/>
       </item>
       <item>
        <widget class="QLabel" name="label_pass">

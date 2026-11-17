@@ -51,6 +51,16 @@ static const struct { const char *label; const char *arg; } kCiphers[] = {
     {"ChaCha20（旧版兼容）", "chacha20"},
 };
 
+// KDF 预设：显示名 / 传给 -i 的轮数
+static const struct { const char *label; int iters; } kKdf[] = {
+    {"1 万（最快）", 10000},
+    {"5 万", 50000},
+    {"10 万", 100000},
+    {"20 万（默认，推荐）", 200000},
+    {"30 万", 300000},
+    {"50 万（最慢，最难爆破）", 500000},
+};
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), m_cli(new CxzCli(this))
 {
@@ -88,6 +98,8 @@ MainWindow::MainWindow(QWidget *parent)
             [this](int) { updateCommandPreviews(); });
     connect(ui->comboBoxCipher, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             [this](int) { updateCommandPreviews(); });
+    connect(ui->comboBoxKdf, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int) { updateCommandPreviews(); });
     connect(ui->lineEditPass, &QLineEdit::textChanged, this, [this](const QString &t) {
         int kinds = 0;
         if (t.size() >= 8) ++kinds;
@@ -107,7 +119,7 @@ MainWindow::MainWindow(QWidget *parent)
         ui->labelInfo->setText(QStringLiteral("找不到 CXZ.exe。把 CXZ.exe 放到本程序同目录，"
                                              "或设置环境变量 CXZ_CLI 指向它。"));
     else
-        ui->labelInfo->setText(QStringLiteral("把 .cxz / .zip 拖进来，或点「打开」；双击条目可直接预览文件内容。\n引擎：") +
+        ui->labelInfo->setText(QStringLiteral("把 .cxz 拖进来，或点「打开」；双击条目可直接预览文件内容。\n引擎：") +
                                QDir::toNativeSeparators(m_cli->exePath()));
     updateCommandPreviews();
 }
@@ -132,6 +144,9 @@ void MainWindow::setupCombos()
     ui->comboBoxCipher->setCurrentIndex(0);
     ui->comboBoxCipher->setToolTip(QStringLiteral("AES-64 只有 64 位强度；AES-512 是两把 AES-256 串联，"
                                                    "不是 NIST 标准名；两者都谈不上\"国家机密级合规\"。"));
+    for (const auto &k : kKdf) ui->comboBoxKdf->addItem(QString::fromUtf8(k.label), k.iters);
+    ui->comboBoxKdf->setCurrentIndex(3);              // 20 万轮
+    ui->comboBoxKdf->setToolTip(QStringLiteral("PBKDF2-SHA256 轮数：越高越难被 GPU 暴力破解，压缩与解压的首段耗时会等比变长。"));
 }
 
 void MainWindow::setupTree()
@@ -157,7 +172,7 @@ void MainWindow::setupActions()
     };
 
     ui->toolBar->setIconSize(QSize(18, 18));
-    ui->toolBar->addAction(addAct(QStringLiteral("打开"), QStringLiteral("打开 .cxz / .zip 预览"),
+    ui->toolBar->addAction(addAct(QStringLiteral("打开"), QStringLiteral("打开 .cxz 预览"),
                                  QKeySequence::Open, [this] { openFileDialog(); }));
     ui->toolBar->addAction(addAct(QStringLiteral("新建"), QStringLiteral("新建空 CXZ 压缩包"),
                                  QKeySequence::New, [this] { newArchiveDialog(); }));
@@ -202,7 +217,7 @@ QStringList MainWindow::compressArgs(const QString &in, const QString &out) cons
     QStringList a;
     a << "-a" << "cxz" << "--machine";
     a << "--cipher" << cipherNameFromCombo();
-    a << "-i" << QString::number(200000);
+    a << "-i" << QString::number(kdfIterations());
     a << QStringLiteral("-%1").arg(ui->comboBox->currentData().toInt());
     a << "-j" << QString::number(ui->comboBox_2->currentData().toInt());
     a << "-f" << "--pass-stdin";
@@ -212,7 +227,8 @@ QStringList MainWindow::compressArgs(const QString &in, const QString &out) cons
 
 void MainWindow::updateCommandPreviews()
 {
-    QStringList c = {"-a", "cxz", "--machine", "--cipher", cipherNameFromCombo(), "-i", "200000",
+    QStringList c = {"-a", "cxz", "--machine", "--cipher", cipherNameFromCombo(),
+                     "-i", QString::number(kdfIterations()),
                      QStringLiteral("-%1").arg(ui->comboBox->currentData().toInt()),
                      "-j", QString::number(ui->comboBox_2->currentData().toInt()),
                      "-f", "--pass-stdin", "{in_file}", "{out_file}"};
@@ -226,6 +242,12 @@ void MainWindow::updateCommandPreviews()
 QString MainWindow::cipherNameFromCombo() const
 {
     return ui->comboBoxCipher->currentData().toString();
+}
+
+int MainWindow::kdfIterations() const
+{
+    const int v = ui->comboBoxKdf->currentData().toInt();
+    return v >= 10000 && v <= 500000 ? v : 200000;
 }
 
 void MainWindow::setBusy(bool busy)
@@ -366,14 +388,14 @@ void MainWindow::ensureOpenOrWarn()
 {
     if (m_archive.isEmpty())
         QMessageBox::information(this, QStringLiteral("没有打开压缩包"),
-                                 QStringLiteral("先打开一个 .cxz / .zip，或从资源管理器双击它。"));
+                                 QStringLiteral("先打开一个 .cxz，或从资源管理器双击它。"));
 }
 
 void MainWindow::openFileDialog()
 {
     const QString f = QFileDialog::getOpenFileName(
         this, QStringLiteral("打开压缩包"), QString(),
-        QStringLiteral("压缩包 (*.cxz *.zip *.deflate *.bwt *.lz77 *.lzw *.ac *.huff *.rle);;所有文件 (*)"));
+        QStringLiteral("压缩包 (*.cxz);;所有文件 (*)"));
     if (!f.isEmpty()) openArchivePath(f);
 }
 
@@ -511,7 +533,7 @@ void MainWindow::extractTo(bool selectedOnly)
             setStatus(QStringLiteral("解压完成"));
             if (QMessageBox::question(this, QStringLiteral("完成"),
                                       QStringLiteral("已解压到：\n%1\n\n要打开这个文件夹吗？")
-                                          .arg(QDir::toNativeSeparators(dir)))
+                                          .arg(QDir::toNativeSeparators(dir))))
                 QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
         } else {
             QMessageBox::critical(this, QStringLiteral("解压失败"), msg.left(2000));
@@ -637,7 +659,8 @@ void MainWindow::createEmptyArchive(const QString &path)
     if (m_busy) return;
     const QString pass = ui->lineEditPass->text();
     ui->logView->clear();
-    runAsync({"--create", path, "--machine", "-f", "--pass-stdin"}, pass, [this, path, pass](int code,
+    runAsync({"--create", path, "--machine", "--cipher", cipherNameFromCombo(),
+              "-i", QString::number(kdfIterations()), "-f", "--pass-stdin"}, pass, [this, path, pass](int code,
                                                                                             const QString &msg) {
         if (code == 0) {
             m_pass = pass;
@@ -656,8 +679,8 @@ void MainWindow::shellCompress(const QStringList &paths)
     QString first;
     for (const QString &p : paths) {
         const QString out = defaultOutFor(QDir::cleanPath(p));
-        const CxzCli::Result r = m_cli->runSync({"-a", "cxz", "--machine", "--cipher", QStringLiteral("aes256"),
-                                                 "-i", "200000", "-5", "-j", "4", "-f", p, out});
+        const CxzCli::Result r = m_cli->runSync({"-a", "cxz", "--machine", "--cipher", cipherNameFromCombo(),
+                                                 "-i", QString::number(kdfIterations()), "-5", "-j", "4", "-f", p, out});
         if (r.code == 0 && first.isEmpty()) first = out;
     }
     if (!first.isEmpty()) {
@@ -718,7 +741,7 @@ void MainWindow::dropEvent(QDropEvent *e)
 
     if (m_archive.isEmpty() && paths.size() == 1) {
         const QString suf = QFileInfo(paths[0]).suffix().toLower();
-        if (suf == QLatin1String("cxz") || suf == QLatin1String("zip")) {
+        if (suf == QLatin1String("cxz")) {
             openArchivePath(paths[0]);
             return;
         }
