@@ -16,7 +16,7 @@ pipeline unless stated. Treat them as orders of magnitude, not benchmarks.
 | Case | Result |
 |---|---|
 | `E:\codes\变声器`, 719 entries, 380 781 912 B → `cxz` | 158 182 733 B (**41.54 %**), 90.3 s, 4 threads |
-| Same folder, `bwt -9` | best ratio of the seven classics, ~3× slower than `cxz` |
+| Same folder, `cxz -9 -j 32` | best ratio the engine can reach, ~3× slower than `-5` |
 | Source tree 2 484 088 B → `cxz` + AES-512 + 500k PBKDF2 | 686 316 B (27.63 %), 0.93 s |
 | AES-CTR throughput (table-driven, scalar) | ~40–60 MB/s per core, dominates encryption time |
 
@@ -26,15 +26,15 @@ pipeline unless stated. Treat them as orders of magnitude, not benchmarks.
    Switching to AES-NI + `PCLMULQDQ` for MAC gives roughly 5–10× on the cipher path and makes
    encryption effectively free compared with the compressor. No format change — same cipher,
    same counter layout.
-2. **Stream, don't slurp.** Currently a whole file is materialised before compression. mmap + a
-   sliding 4 MiB window removes peak RSS (a 380 MB folder currently needs ~400 MB) and removes
+2. **Stream, don't slurp.** Currently a whole file is materialised before compression. mmap +
+   sliding 4 MiB windows removes peak RSS (a 380 MB folder currently needs ~400 MB) and removes
    one full copy per block.
 3. **Match-finder tuning per algorithm tier.** One global hash table size wastes probe time on
    `-1..-3`. Give each tier its own depth limit and table shift; the `-9` path spends its budget
-   on long-range matches rather than re-probing short ones.
-4. **Parallel MAC.** HMAC-SHA256 over the final ciphertext can be computed block-wise (a hash
-   tree over 4 MiB chunks with a fixed leaf order), or simply overlapped with the next block's
-   AES on a second thread. Today it is serial.
+   on long-range matches instead of re-probing short ones.
+4. **Parallel MAC.** HMAC-SHA256 over the final ciphertext can be computed block-wise (hash tree
+   over 4 MiB chunks with a fixed leaf order), or simply overlap it with the next block's AES on a
+   second thread. Today it is serial.
 5. **Block scheduler.** Current chunking is static. A work queue that hands the next block to
    whichever thread finishes first removes the tail effect: on 32 threads the last row of blocks
    is often 15 % of wall time.
@@ -85,9 +85,9 @@ pipeline unless stated. Treat them as orders of magnitude, not benchmarks.
    our coder already computes but currently discards). This is a modelling idea, not a port.
 2. **Adaptive mixer weights** with per-block learning rate, reset on block boundaries so parallel
    blocks stay independent.
-3. **BWT path with a better suffix sort.** Current block sort is fine for 4 MiB but the secondary
-   sort dominates on repetitive data; an induced-sorting variant (our own implementation) trims
-   that.
+3. **Match-pair modelling.** Feed `(last length, last distance)` into a second context set, which
+   costs one extra table lookup per symbol and recovers most of the redundancy that a block sort
+   would have exposed — without importing a sorting stage.
 4. **Entropy-coded match lengths.** Match length / distance are currently coded with fixed
    contexts; conditioning them on recent history is a cheap ratio win.
 
@@ -106,7 +106,7 @@ speed, ratio and the attacker's cost — not the certification status.
 | 场景 | 结果 |
 |---|---|
 | `E:\codes\变声器`，719 条目，380 781 912 B → `cxz` | 158 182 733 B（**41.54%**），90.3 秒，4 线程 |
-| 同目录 `bwt -9` | 七种经典里压缩率最高，速度约为 `cxz` 的 1/3 |
+| 同目录 `cxz -9 -j 32` | 引擎能达到的最高压缩率，速度约为 `-5` 的 1/3 |
 | 源码树 2 484 088 B → `cxz` + AES-512 + 50 万轮 | 686 316 B（27.63%），0.93 秒 |
 | AES-CTR 吞吐（查表、标量） | 单核约 40–60 MB/s，是加密阶段的瓶颈 |
 
@@ -161,8 +161,8 @@ speed, ratio and the attacker's cost — not the certification status.
 1. **模型调度。** 加一组以"上一个匹配长度"为键的上下文（这个信号编码器本来就算出来了，
    现在丢掉了）。这是建模思路，不是移植。
 2. **自适应 mixer 权重**，按块设学习率，块边界重置，保证并行块互不干扰。
-3. **BWT 路径换更好的后缀排序。** 4 MiB 下现排法够用，但重复数据时二级排序成为瓶颈；
-   自研 induced-sorting 变体能削掉这块。
+3. **匹配对建模。** 把 `(上一次长度, 上一次距离)` 作为第二套上下文，每符号多一次查表，
+   能把块排序本该挖出的那部分冗余拿回来，而不必引入排序阶段。
 4. **匹配长度进熵编码。** 现在长度/距离用固定上下文编码，按近期历史条件化是廉价收益。
 
 ### 5. 这些优化买不到什么
