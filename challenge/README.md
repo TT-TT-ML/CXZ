@@ -1,26 +1,31 @@
 # Challenge — break the archive / 挑战：破解这个归档
 
-`CXZ-source-full.cxz` is the **complete source tree of both programs**, engine included:
-`src/` (all compression, KDF, AES, container code), `gui/` (the Qt front-end), docs, and the
-built `CXZ.exe`. It is compressed with the original CXZ compressor and encrypted at the highest
-level the tool offers.
+`CXZ-source-full.cxz` is the **complete source tree of both programs**, engine included: `src/`
+(all compression, KDF, AES, container code), `gui/` (the Qt front-end), docs, build files, and the
+README set. It is compressed with the original CXZ compressor and encrypted at the highest level
+the tool offers. `CXZ.exe` itself is not inside the archive — it is the tool you need to open it.
+
+Where to get it / 到哪里取：
+
+* Release asset: [`../releases/latest`](../../releases/latest) → `CXZ-source-full.cxz`
+* In-repo copy: [`challenge/CXZ-source-full.cxz`](CXZ-source-full.cxz)
 
 ```
 file            CXZ-source-full.cxz
-size            686 316 bytes
-sha256          48e4a59061055b2d16c621fa04216a8ca1be880804bef473d110a247a30f9d01
+size            81 105 bytes
+sha256          a0ab4ed841cc455df7a8bcf28b19285cc8d58d5793fade42d0f11a622ef49d71
 cipher          AES-512          (two chained AES-256-CTR passes, 512 bits of key material)
 KDF             PBKDF2-SHA256, 500 000 rounds
 slots           1
-entries         35  (32 files, 3 folders)
-plaintext size  2 483 200 bytes
+entries         36  (33 files, 3 folders)
+plaintext size  279 653 bytes
 ```
 
 The passphrase is **not** in this repository, is not derivable from anything here, and will not
 be published. There is no hint chain, no partial passphrase, no "first 4 characters".
 
-If the binary is missing from your clone, take it from the project download package — the sha256
-above must match byte for byte.
+If your copy does not match the sha256 above, download it again — the archived bytes are exactly
+the plaintext tree below, file for file.
 
 ---
 
@@ -46,8 +51,8 @@ If you think you have the plaintext, these hashes tell you whether it is the rea
 src/cxz.cpp         35 294 B   cc73b605b4db07b73dc38acef90b0e5fb180b8c2aac29cdbc7f140e81533ed1e
 src/aes.cpp          7 597 B   dfe90c070472cc07b32b4eeebd7310cdae655a707e7e906750b23da89beb5a576
 src/crypto.cpp       9 423 B   1aa2e05d12ce3700d67b7bb1c0e0d36d01722bb1bff487dafb2687400d6d00d7
-src/main.cpp        51 557 B   43bd80f48e067ab8a699aa321f5a9c2e8c0d1c0228d310bec72673cb07357bd9
-gui/mainwindow.cpp  32 407 B   85636a07da7dc33826a2476792e79db0376d2b42c21737fb1b52cdb5a754d82b
+src/main.cpp        44 412 B   28bcefc7f68942bbb3b8af27cf3ec68c1605730a0bd328e38c808d000c590a67
+gui/mainwindow.cpp  33 398 B   8d0e3881ee768f9ac1eaf0ec5e00b39e4cc303cc331c4c510fe4e52de0b62460
 ```
 
 ### Why this is supposed to be hard
@@ -68,23 +73,24 @@ operational habit. `docs/FORMAT-v3.md` gives you everything needed to look for t
 ## 中文
 
 `CXZ-source-full.cxz` 是**两套程序的完整源码树**（含引擎）：`src/`（全部压缩、KDF、AES、容器代码）、
-`gui/`（Qt 前端）、文档，以及编译好的 `CXZ.exe`。它用自研 CXZ 压缩，并以工具提供的最高等级加密。
+`gui/`（Qt 前端）、文档、构建文件与 README。它用自研 CXZ 压缩，并以工具提供的最高等级加密。
+归档里**不包含** `CXZ.exe`——那正是你打开它要用的工具。
 
 ```
 文件            CXZ-source-full.cxz
-大小            686 316 字节
-sha256          48e4a59061055b2d16c621fa04216a8ca1be880804bef473d110a247a30f9d01
+大小            81 105 字节
+sha256          a0ab4ed841cc455df7a8bcf28b19285cc8d58d5793fade42d0f11a622ef49d71
 加密            AES-512（两遍串联 AES-256-CTR，512 位密钥材料）
 KDF             PBKDF2-SHA256，50 万轮
 口令槽          1
-条目            35（32 个文件 + 3 个目录）
-明文大小        2 483 200 字节
+条目            36（33 个文件 + 3 个目录）
+明文大小        279 653 字节
 ```
 
 口令**不在**本仓库里，无法从仓库内任何内容推出，也不会公开。没有提示链、没有半截口令、
-没有"前 4 位"。
+没有“前 4 位”。
 
-如果克隆里没有这个二进制，请从项目下载包取；上面的 sha256 必须逐字节对得上。
+如果是你看的文件与上面的 sha256 对不上，请重新下载；归档里的字节与下面锚点列的明文树严格一一对应。
 
 ### 规则
 
@@ -102,8 +108,8 @@ KDF             PBKDF2-SHA256，50 万轮
 src/cxz.cpp         35 294 B   cc73b605b4db07b73dc38acef90b0e5fb180b8c2aac29cdbc7f140e81533ed1e
 src/aes.cpp          7 597 B   dfe90c070472cc07b32b4eeebd7310cdae655a707e7e906750b23da89beb5a576
 src/crypto.cpp       9 423 B   1aa2e05d12ce3700d67b7bb1c0e0d36d01722bb1bff487dafb2687400d6d00d7
-src/main.cpp        51 557 B   43bd80f48e067ab8a699aa321f5a9c2e8c0d1c0228d310bec72673cb07357bd9
-gui/mainwindow.cpp  32 407 B   85636a07da7dc33826a2476792e79db0376d2b42c21737fb1b52cdb5a754d82b
+src/main.cpp        44 412 B   28bcefc7f68942bbb3b8af27cf3ec68c1605730a0bd328e38c808d000c590a67
+gui/mainwindow.cpp  33 398 B   8d0e3881ee768f9ac1eaf0ec5e00b39e4cc303cc331c4c510fe4e52de0b62460
 ```
 
 ### 为什么这应该很难
@@ -114,5 +120,5 @@ gui/mainwindow.cpp  32 407 B   85636a07da7dc33826a2476792e79db0376d2b42c21737fb1
 * MAC 和 key commitment 都带密钥，所以不跑完整 KDF 无法验证猜测；错口令与坏字节返回同一句话。
 * 元数据也加密，你连一个明文文件名都拿不到当参照。
 
-现实攻击面不在密码本身，而在实现：CTR 计数器处理的错误、碗包 nonce 复用、槽 commitment 的
+现实攻击面不在密码本身，而在实现：CTR 计数器处理的错误、跨包 nonce 复用、槽 commitment 的
 疏漏、或者操作上的坏习惯。`docs/FORMAT-v3.md` 把找这些问题需要的东西全给你了。
